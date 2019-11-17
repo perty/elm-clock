@@ -5,7 +5,9 @@ import Html exposing (Html, div)
 import Html.Attributes exposing (style)
 import Svg exposing (Svg, circle, g, line, polygon, svg)
 import Svg.Attributes exposing (cx, cy, fill, fillOpacity, points, r, stroke, transform, viewBox, width, x1, x2, y1, y2)
+import Task
 import Time
+import TimeZone
 
 
 main =
@@ -21,7 +23,7 @@ main =
 -- MODEL
 
 
-type alias Date =
+type alias TimeOfDay =
     { hour : Int
     , minute : Int
     , second : Int
@@ -29,12 +31,18 @@ type alias Date =
 
 
 type alias Model =
-    Date
+    { time : TimeOfDay
+    , timeZone : Time.Zone
+    }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Date 0 0 0, Cmd.none )
+    ( { time = TimeOfDay 0 0 0
+      , timeZone = Time.utc
+      }
+    , TimeZone.getZone |> Task.attempt ReceiveTimeZone
+    )
 
 
 
@@ -43,18 +51,25 @@ init _ =
 
 type Msg
     = Tick Time.Posix
+    | ReceiveTimeZone (Result TimeZone.Error ( String, Time.Zone ))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg _ =
+update msg model =
     case msg of
         Tick newTime ->
-            ( dateFromPosix newTime, Cmd.none )
+            ( { model | time = dateFromPosix model.timeZone newTime }, Cmd.none )
+
+        ReceiveTimeZone (Ok ( _, zone )) ->
+            ( { model | timeZone = zone }, Cmd.none )
+
+        ReceiveTimeZone (Err _) ->
+            ( model, Cmd.none )
 
 
-dateFromPosix : Time.Posix -> Date
-dateFromPosix time =
-    Date (Time.toHour Time.utc time) (Time.toMinute Time.utc time) (Time.toSecond Time.utc time)
+dateFromPosix : Time.Zone -> Time.Posix -> TimeOfDay
+dateFromPosix zone time =
+    TimeOfDay (Time.toHour zone time) (Time.toMinute zone time) (Time.toSecond zone time)
 
 
 
@@ -82,11 +97,11 @@ view model =
         , style "max-width" "100px"
         ]
         [ svg [ viewBox "0 0 100 100", width "100px" ]
-            (clockFn model)
+            (clockFn model.time)
         ]
 
 
-clockFn : Date -> List (Svg Msg)
+clockFn : TimeOfDay -> List (Svg Msg)
 clockFn theDateNow =
     [ g [ fill "black", stroke "black", transform "translate(50,50)" ]
         (clockFace
@@ -130,7 +145,7 @@ minuteToAngle minute =
     (toFloat minute - 15.0) * 360 / 60.0
 
 
-hourHand : Date -> List (Svg Msg)
+hourHand : TimeOfDay -> List (Svg Msg)
 hourHand theDateNow =
     let
         angle =
@@ -147,12 +162,12 @@ hourHand theDateNow =
 -- Which minute should the hour hand point to?
 
 
-hourMinute : Date -> Int
+hourMinute : TimeOfDay -> Int
 hourMinute theDateNow =
     modBy 12 theDateNow.hour * 5 + theDateNow.minute // 12
 
 
-minutesHand : Date -> List (Svg Msg)
+minutesHand : TimeOfDay -> List (Svg Msg)
 minutesHand theDateNow =
     let
         angle =
@@ -165,7 +180,7 @@ minutesHand theDateNow =
     ]
 
 
-secondsHand : Date -> List (Svg Msg)
+secondsHand : TimeOfDay -> List (Svg Msg)
 secondsHand theDateNow =
     let
         angle =
