@@ -184,7 +184,7 @@ minutesHand theDateNow =
             minuteToAngle theDateNow.minute
     in
     [ g [ transform ("rotate(" ++ String.fromFloat angle ++ ")") ]
-        [ polygon [ points "0,0 2,2 30,0 2, -2", transform "translate(5,0)" ] []
+        [ polygon [ points "0,0 2,2 29,0 2, -2", transform "translate(5,0)" ] []
         , xLine "0" "5"
         ]
     ]
