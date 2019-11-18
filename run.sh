@@ -1,1 +1,2 @@
-elm-live src/Main.elm -- --debug
+#!/usr/bin/env bash
+elm-live src/Main.elm -- --outpout=elm.js --debug

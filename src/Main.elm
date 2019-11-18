@@ -89,15 +89,25 @@ second =
 -- VIEW
 
 
+clockWidth =
+    "300px"
+
+
 view : Model -> Html Msg
 view model =
     div
-        [ style "padding" "10px"
-        , style "border" "solid 1px"
-        , style "max-width" "100px"
+        [ style "height" "100%"
+        , style "display" "flex"
+        , style "align-items" "center"
+        , style "justify-content" "center"
         ]
-        [ svg [ viewBox "0 0 100 100", width "100px" ]
-            (clockFn model.time)
+        [ div
+            [ style "padding" "10px"
+            , style "max-width" clockWidth
+            ]
+            [ svg [ viewBox "0 0 100 100", width clockWidth ]
+                (clockFn model.time)
+            ]
         ]
 
 
