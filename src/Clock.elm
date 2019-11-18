@@ -1,4 +1,4 @@
-module Main exposing (Model)
+module Clock exposing (Model)
 
 import Browser
 import Html exposing (Html, div)

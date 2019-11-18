@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Clock</title>
+    <script type="text/javascript" src="elm.js"></script>
+    <style>
+        html {
+            height: 100%;
+        }
+
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            background-color: aliceblue
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="clock"></div>
+
+<script type="text/javascript">
+    var clockDiv = document.getElementById('clock');
+    Elm.Clock.init({node: clockDiv});
+</script>
+
+</body>
+</html>
