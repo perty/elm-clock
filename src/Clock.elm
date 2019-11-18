@@ -125,8 +125,27 @@ clockFn theDateNow =
 clockFace : List (Svg Msg)
 clockFace =
     [ circle [ cx "0", cy "0", r "49", fill "white" ] []
+    , letterE
+    , letterL
     ]
+        ++ letterM
         ++ tickMarks
+
+
+letterE =
+    polygon [ points "0,0 0,9 1,9 1,8.5 0.5,8.5 0.5,5 0.75,5 0.75,4 0.5,4 0.5,1 1,1 1,0", transform "translate(-3,15)" ] []
+
+
+letterL =
+    polygon [ points "0,0 0,1 0.5,1 0.5,9 1,9 1,8.5 0.5,8.5 0.5,0", transform "translate(0,15)" ] []
+
+
+letterM =
+    [ polygon [ points "0,4 0,9 0.25,9 0.25,4 ", transform "translate(3,15)" ] []
+    , polygon [ points "0.25,5 4,5 4,5.5 0.25,5.5 ", transform "translate(3,15)" ] []
+    , polygon [ points "4,5.5 4,9 3.75,9 3.75,5.5", transform "translate(3,15)" ] []
+    , polygon [ points "2,5.5 2,9 1.75,9 1.75,5.5", transform "translate(3,15)" ] []
+    ]
 
 
 tickMarks : List (Svg Msg)
