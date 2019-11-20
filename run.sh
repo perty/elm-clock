@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-elm-live src/Clock.elm -- --outpout=elm.js --debug
+elm-live src/Clock.elm -- --output=elm.js --debug

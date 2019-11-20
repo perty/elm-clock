@@ -1,6 +1,8 @@
 module Clock exposing (Model)
 
 import Browser
+import Browser.Dom
+import Browser.Events
 import Html exposing (Html, div)
 import Html.Attributes exposing (style)
 import Svg exposing (Svg, circle, g, line, polygon, svg)
@@ -20,6 +22,17 @@ main =
 
 
 
+-- Messages
+
+
+type Msg
+    = Tick Time.Posix
+    | ReceiveTimeZone (Result TimeZone.Error ( String, Time.Zone ))
+    | GetViewPort Browser.Dom.Viewport
+    | WindowResize Int Int
+
+
+
 -- MODEL
 
 
@@ -33,6 +46,7 @@ type alias TimeOfDay =
 type alias Model =
     { time : TimeOfDay
     , timeZone : Time.Zone
+    , clockWidth : String
     }
 
 
@@ -40,18 +54,17 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     ( { time = TimeOfDay 0 0 0
       , timeZone = Time.utc
+      , clockWidth = "300px"
       }
-    , TimeZone.getZone |> Task.attempt ReceiveTimeZone
+    , Cmd.batch
+        [ TimeZone.getZone |> Task.attempt ReceiveTimeZone
+        , Browser.Dom.getViewport |> Task.perform GetViewPort
+        ]
     )
 
 
 
 -- UPDATE
-
-
-type Msg
-    = Tick Time.Posix
-    | ReceiveTimeZone (Result TimeZone.Error ( String, Time.Zone ))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -66,10 +79,25 @@ update msg model =
         ReceiveTimeZone (Err _) ->
             ( model, Cmd.none )
 
+        GetViewPort viewPort ->
+            ( { model | clockWidth = calculateWidth <| Basics.round <| Basics.min viewPort.viewport.width viewPort.viewport.height }
+            , Cmd.none
+            )
+
+        WindowResize width height ->
+            ( { model | clockWidth = calculateWidth <| Basics.min width height }
+            , Cmd.none
+            )
+
 
 dateFromPosix : Time.Zone -> Time.Posix -> TimeOfDay
 dateFromPosix zone time =
     TimeOfDay (Time.toHour zone time) (Time.toMinute zone time) (Time.toSecond zone time)
+
+
+calculateWidth : Int -> String
+calculateWidth min =
+    String.fromInt (min - 10) ++ "px"
 
 
 
@@ -78,7 +106,10 @@ dateFromPosix zone time =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Time.every second Tick
+    Sub.batch
+        [ Time.every second Tick
+        , Browser.Events.onResize WindowResize
+        ]
 
 
 second =
@@ -87,10 +118,6 @@ second =
 
 
 -- VIEW
-
-
-clockWidth =
-    "300px"
 
 
 view : Model -> Html Msg
@@ -103,9 +130,9 @@ view model =
         ]
         [ div
             [ style "padding" "10px"
-            , style "max-width" clockWidth
+            , style "max-width" model.clockWidth
             ]
-            [ svg [ viewBox "0 0 100 100", width clockWidth ]
+            [ svg [ viewBox "0 0 100 100", width model.clockWidth ]
                 (clockFn model.time)
             ]
         ]

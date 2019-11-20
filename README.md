@@ -1,8 +1,22 @@
 # elm-clock
-A clock using Elm and SVG.
+An analog clock that adjusts its size. Written in Elm and SVG.
 
 ## About
-The clock demonstrates how to get the local time zone and using SVG to draw.
+Demonstrates how to get the local time zone and 
+using SVG to draw a clock. Also, shows how to
+adjust the size of the clock to the initial 
+viewport and follow resize events.
+
+## Size adjustment
+
+The `init` method creates two tasks, one to get the time zone
+and one to get the initial viewport. 
+
+The `subscription` function has a related job in that every second 
+the time of day is updated. It also subscribes to `onResize` events so that 
+the clock resize itself accordingly. 
+
+Since the clock is round, it will adjust to the lesser of width and height.
 
 ## Clock face
 
