@@ -219,15 +219,15 @@ hourHand theDateNow =
 
 
 hourMinute : TimeOfDay -> Int
-hourMinute theDateNow =
-    modBy 12 theDateNow.hour * 5 + theDateNow.minute // 12
+hourMinute theTimeNow =
+    modBy 12 theTimeNow.hour * 5 + theTimeNow.minute // 12
 
 
 minutesHand : TimeOfDay -> List (Svg Msg)
-minutesHand theDateNow =
+minutesHand theTimeNow =
     let
         angle =
-            minuteToAngle theDateNow.minute
+            minuteToAngle theTimeNow.minute
     in
     [ g [ transform ("rotate(" ++ String.fromFloat angle ++ ")") ]
         [ polygon [ points "0,0 2,2 29,0 2, -2", transform "translate(5,0)" ] []
@@ -237,10 +237,10 @@ minutesHand theDateNow =
 
 
 secondsHand : TimeOfDay -> List (Svg Msg)
-secondsHand theDateNow =
+secondsHand theTimeNow =
     let
         angle =
-            minuteToAngle theDateNow.second
+            minuteToAngle theTimeNow.second
     in
     [ g [ transform ("rotate(" ++ String.fromFloat angle ++ ")") ]
         [ xLine "-5" "40"
