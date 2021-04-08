@@ -5,8 +5,8 @@ import Browser.Dom
 import Browser.Events
 import Html exposing (Html, div)
 import Html.Attributes exposing (style)
-import Svg exposing (Svg, circle, g, line, polygon, svg)
-import Svg.Attributes exposing (cx, cy, fill, fillOpacity, points, r, stroke, transform, viewBox, width, x1, x2, y1, y2)
+import Svg exposing (Svg, circle, g, line, path, polygon, svg)
+import Svg.Attributes exposing (cx, cy, d, fill, fillOpacity, opacity, points, r, stroke, transform, viewBox, width, x1, x2, y1, y2)
 import Task
 import Time
 import TimeZone
@@ -140,8 +140,24 @@ view model =
 
 clockFn : TimeOfDay -> List (Svg Msg)
 clockFn theDateNow =
+    let
+        beginTime : TimeOfDay
+        beginTime =
+            { hour = 14
+            , minute = 0
+            , second = 0
+            }
+
+        endTime : TimeOfDay
+        endTime =
+            { hour = 20
+            , minute = 0
+            , second = 0
+            }
+    in
     [ g [ fill "black", stroke "black", transform "translate(50,50)" ]
         (clockFace
+            ++ segment beginTime endTime
             ++ hourHand theDateNow
             ++ minutesHand theDateNow
             ++ secondsHand theDateNow
@@ -173,6 +189,70 @@ letterM =
     , polygon [ points "4,5.5 4,9 3.75,9 3.75,5.5", transform "translate(3,15)" ] []
     , polygon [ points "2,5.5 2,9 1.75,9 1.75,5.5", transform "translate(3,15)" ] []
     ]
+
+
+segment : TimeOfDay -> TimeOfDay -> List (Svg msg)
+segment startTime endTime =
+    let
+        startAngle : Float
+        startAngle =
+            degrees (minuteToAngle (hourMinute startTime))
+
+        endAngle : Float
+        endAngle =
+            degrees (minuteToAngle (hourMinute endTime))
+
+        outerEnd =
+            48
+
+        innerStart =
+            42
+
+        parts =
+            String.join " "
+                [ pathMoveTo (cos startAngle * innerStart) (sin startAngle * innerStart)
+                , pathLineTo (cos startAngle * outerEnd) (sin startAngle * outerEnd)
+                , arcToOuter outerEnd (cos endAngle * outerEnd) (sin endAngle * outerEnd)
+                , pathLineTo (cos endAngle * innerStart) (sin endAngle * innerStart)
+                , arcToInner innerStart (cos startAngle * innerStart) (sin startAngle * innerStart)
+                ]
+    in
+    [ path [ d parts, fill "green", stroke "green", opacity "0.5" ] []
+    ]
+
+
+pathMoveTo : Float -> Float -> String
+pathMoveTo x y =
+    "M " ++ String.fromFloat x ++ " " ++ String.fromFloat y
+
+
+pathLineTo : Float -> Float -> String
+pathLineTo x y =
+    "L " ++ String.fromFloat x ++ " " ++ String.fromFloat y
+
+
+arcToOuter : Int -> Float -> Float -> String
+arcToOuter r x y =
+    String.join " "
+        [ "A"
+        , String.fromInt r
+        , String.fromInt r
+        , "0 0 1"
+        , String.fromFloat x
+        , String.fromFloat y
+        ]
+
+
+arcToInner : Int -> Float -> Float -> String
+arcToInner r x y =
+    String.join " "
+        [ "A"
+        , String.fromInt r
+        , String.fromInt r
+        , "0 0 0"
+        , String.fromFloat x
+        , String.fromFloat y
+        ]
 
 
 tickMarks : List (Svg Msg)
