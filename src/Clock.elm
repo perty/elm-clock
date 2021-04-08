@@ -3,10 +3,12 @@ module Clock exposing (Model)
 import Browser
 import Browser.Dom
 import Browser.Events
-import Html exposing (Html, div)
-import Html.Attributes exposing (style)
+import Html exposing (Html, button, div, input, table, tbody, td, text, th, thead, tr)
+import Html.Attributes exposing (style, type_, value)
+import Html.Events as Events
 import Svg exposing (Svg, circle, g, line, path, polygon, svg)
 import Svg.Attributes exposing (cx, cy, d, fill, fillOpacity, opacity, points, r, stroke, transform, viewBox, width, x1, x2, y1, y2)
+import Svg.Events exposing (onClick)
 import Task
 import Time
 import TimeZone
@@ -30,6 +32,14 @@ type Msg
     | ReceiveTimeZone (Result TimeZone.Error ( String, Time.Zone ))
     | GetViewPort Browser.Dom.Viewport
     | WindowResize Int Int
+    | ShowBusyDialog
+    | UpdateStartHour String
+    | UpdateStartMinute String
+    | UpdateEndHour String
+    | UpdateEndMinute String
+    | AddBusyClicked
+    | DoneButtonClicked
+    | RemoveBusy Busy
 
 
 
@@ -43,10 +53,32 @@ type alias TimeOfDay =
     }
 
 
+type Colour
+    = Red
+    | Green
+    | Yellow
+    | Blue
+    | Grey
+
+
+type alias Busy =
+    { startTime : TimeOfDay
+    , endTime : TimeOfDay
+    , colour : Colour
+    }
+
+
 type alias Model =
     { time : TimeOfDay
     , timeZone : Time.Zone
     , clockWidth : String
+    , showBusyDialog : Bool
+    , busyHours : List Busy
+    , startHourInput : String
+    , startMinuteInput : String
+    , endHourInput : String
+    , endMinuteInput : String
+    , error : String
     }
 
 
@@ -55,6 +87,13 @@ init _ =
     ( { time = TimeOfDay 0 0 0
       , timeZone = Time.utc
       , clockWidth = "300px"
+      , showBusyDialog = False
+      , busyHours = []
+      , startHourInput = ""
+      , startMinuteInput = ""
+      , endHourInput = ""
+      , endMinuteInput = ""
+      , error = ""
       }
     , Cmd.batch
         [ TimeZone.getZone |> Task.attempt ReceiveTimeZone
@@ -86,6 +125,111 @@ update msg model =
 
         WindowResize width height ->
             ( { model | clockWidth = calculateWidth <| Basics.min width height }
+            , Cmd.none
+            )
+
+        ShowBusyDialog ->
+            ( { model | showBusyDialog = True }
+            , Cmd.none
+            )
+
+        UpdateStartHour hour ->
+            ( { model | startHourInput = hour }
+            , Cmd.none
+            )
+
+        UpdateStartMinute minute ->
+            ( { model | startMinuteInput = minute }
+            , Cmd.none
+            )
+
+        UpdateEndHour hour ->
+            ( { model | endHourInput = hour }
+            , Cmd.none
+            )
+
+        UpdateEndMinute minute ->
+            ( { model | endMinuteInput = minute }
+            , Cmd.none
+            )
+
+        AddBusyClicked ->
+            let
+                stringToInt : String -> Int -> Result String Int
+                stringToInt string max =
+                    String.trim string
+                        |> String.toInt
+                        |> Result.fromMaybe ("Error parsing string: " ++ string)
+                        |> Result.andThen
+                            (\h ->
+                                if h >= 0 && h < max then
+                                    Ok h
+
+                                else
+                                    Err ("Must be between 0 and " ++ String.fromInt max ++ ": " ++ string)
+                            )
+
+                startHour : Result String Int
+                startHour =
+                    stringToInt model.startHourInput 24
+
+                startMinute : Result String Int
+                startMinute =
+                    stringToInt model.startMinuteInput 60
+
+                endHour : Result String Int
+                endHour =
+                    stringToInt model.endHourInput 24
+
+                endMinute : Result String Int
+                endMinute =
+                    stringToInt model.endMinuteInput 60
+
+                busy : Result String Busy
+                busy =
+                    Result.map4
+                        (\sh sm eh em ->
+                            { startTime =
+                                { hour = sh
+                                , minute = sm
+                                , second = 0
+                                }
+                            , endTime =
+                                { hour = eh
+                                , minute = em
+                                , second = 0
+                                }
+                            , colour = Green
+                            }
+                        )
+                        startHour
+                        startMinute
+                        endHour
+                        endMinute
+            in
+            ( case busy of
+                Ok b ->
+                    { model
+                        | busyHours = b :: model.busyHours
+                        , startMinuteInput = ""
+                        , startHourInput = ""
+                        , endMinuteInput = ""
+                        , endHourInput = ""
+                        , error = ""
+                    }
+
+                Err error ->
+                    { model | error = error }
+            , Cmd.none
+            )
+
+        DoneButtonClicked ->
+            ( { model | showBusyDialog = False }
+            , Cmd.none
+            )
+
+        RemoveBusy busy ->
+            ( { model | busyHours = List.filter (\b -> b /= busy) model.busyHours }
             , Cmd.none
             )
 
@@ -132,32 +276,22 @@ view model =
             [ style "padding" "10px"
             , style "max-width" model.clockWidth
             ]
-            [ svg [ viewBox "0 0 100 100", width model.clockWidth ]
-                (clockFn model.time)
-            ]
+            (if model.showBusyDialog then
+                [ viewBusyDialog model ]
+
+             else
+                [ svg [ viewBox "0 0 100 100", width model.clockWidth ]
+                    (clockFn model.busyHours model.time)
+                ]
+            )
         ]
 
 
-clockFn : TimeOfDay -> List (Svg Msg)
-clockFn theDateNow =
-    let
-        beginTime : TimeOfDay
-        beginTime =
-            { hour = 14
-            , minute = 0
-            , second = 0
-            }
-
-        endTime : TimeOfDay
-        endTime =
-            { hour = 20
-            , minute = 0
-            , second = 0
-            }
-    in
-    [ g [ fill "black", stroke "black", transform "translate(50,50)" ]
+clockFn : List Busy -> TimeOfDay -> List (Svg Msg)
+clockFn busyHours theDateNow =
+    [ g [ fill "black", stroke "black", transform "translate(50,50)", onClick ShowBusyDialog ]
         (clockFace
-            ++ segment beginTime endTime
+            ++ busySegments busyHours
             ++ hourHand theDateNow
             ++ minutesHand theDateNow
             ++ secondsHand theDateNow
@@ -191,7 +325,12 @@ letterM =
     ]
 
 
-segment : TimeOfDay -> TimeOfDay -> List (Svg msg)
+busySegments : List Busy -> List (Svg msg)
+busySegments busies =
+    List.map (\b -> segment b.startTime b.endTime) busies
+
+
+segment : TimeOfDay -> TimeOfDay -> Svg msg
 segment startTime endTime =
     let
         startAngle : Float
@@ -217,8 +356,7 @@ segment startTime endTime =
                 , arcToInner innerStart (cos startAngle * innerStart) (sin startAngle * innerStart)
                 ]
     in
-    [ path [ d parts, fill "green", stroke "green", opacity "0.5" ] []
-    ]
+    path [ d parts, fill "green", stroke "green", opacity "0.5" ] []
 
 
 pathMoveTo : Float -> Float -> String
@@ -332,3 +470,68 @@ secondsHand theTimeNow =
 xLine : String -> String -> Svg Msg
 xLine start end =
     line [ x1 start, y1 "0", x2 end, y2 "0" ] []
+
+
+
+-- Busy managing
+
+
+viewBusyDialog : Model -> Html Msg
+viewBusyDialog model =
+    div []
+        [ text "Busy hours"
+        , viewBusyHours model.busyHours
+        , viewBusyControls model
+        ]
+
+
+viewBusyHours : List Busy -> Html Msg
+viewBusyHours busies =
+    table []
+        [ thead []
+            [ tr []
+                [ th [] [ text "Start" ]
+                , th [] [ text "End" ]
+                , th [] [ text "Remove" ]
+                ]
+            ]
+        , tbody [] (List.map viewBusy busies)
+        ]
+
+
+viewBusy : Busy -> Html Msg
+viewBusy busy =
+    tr []
+        [ td [] [ text <| busyToString busy.startTime ]
+        , td [] [ text <| busyToString busy.endTime ]
+        , td [] [ button [ Events.onClick (RemoveBusy busy) ] [ text "X" ] ]
+        ]
+
+
+busyToString : TimeOfDay -> String
+busyToString timeOfDay =
+    String.join ":" [ String.fromInt timeOfDay.hour, String.fromInt timeOfDay.minute ]
+
+
+viewBusyControls : Model -> Html Msg
+viewBusyControls model =
+    div []
+        [ div []
+            [ input [ Events.onInput UpdateStartHour, value model.startHourInput ] []
+            , input [ Events.onInput UpdateStartMinute, value model.startMinuteInput ] []
+            , input [ Events.onInput UpdateEndHour, value model.endHourInput ] []
+            , input [ Events.onInput UpdateEndMinute, value model.endMinuteInput ] []
+            , button
+                [ type_ "submit"
+                , Events.onClick AddBusyClicked
+                ]
+                [ text "Add" ]
+            ]
+        , text model.error
+        , button
+            [ type_ "submit"
+            , Events.onClick DoneButtonClicked
+            , width "100%"
+            ]
+            [ text "Done" ]
+        ]
