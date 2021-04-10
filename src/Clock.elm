@@ -353,6 +353,9 @@ segment startTime endTime =
         endAngle =
             time2Angle endTime
 
+        minuteDiff =
+            hourMin endTime - hourMin startTime
+
         outerEnd =
             48
 
@@ -363,9 +366,9 @@ segment startTime endTime =
             String.join " "
                 [ pathMoveTo (cos startAngle * innerStart) (sin startAngle * innerStart)
                 , pathLineTo (cos startAngle * outerEnd) (sin startAngle * outerEnd)
-                , arcToOuter outerEnd (cos endAngle * outerEnd) (sin endAngle * outerEnd)
+                , arcToOuter (minuteDiff > 30) outerEnd (cos endAngle * outerEnd) (sin endAngle * outerEnd)
                 , pathLineTo (cos endAngle * innerStart) (sin endAngle * innerStart)
-                , arcToInner innerStart (cos startAngle * innerStart) (sin startAngle * innerStart)
+                , arcToInner (minuteDiff > 30) innerStart (cos startAngle * innerStart) (sin startAngle * innerStart)
                 ]
     in
     path [ d parts, fill "green", stroke "green", opacity "0.5" ] []
@@ -381,25 +384,33 @@ pathLineTo x y =
     "L " ++ String.fromFloat x ++ " " ++ String.fromFloat y
 
 
-arcToOuter : Int -> Float -> Float -> String
-arcToOuter r x y =
+arcToOuter : Bool -> Int -> Float -> Float -> String
+arcToOuter large r x y =
     String.join " "
         [ "A"
         , String.fromInt r
         , String.fromInt r
-        , "0 0 1"
+        , if large then
+            "0 1 1"
+
+          else
+            "0 0 1"
         , String.fromFloat x
         , String.fromFloat y
         ]
 
 
-arcToInner : Int -> Float -> Float -> String
-arcToInner r x y =
+arcToInner : Bool -> Int -> Float -> Float -> String
+arcToInner large r x y =
     String.join " "
         [ "A"
         , String.fromInt r
         , String.fromInt r
-        , "0 0 0"
+        , if large then
+            "0 1 0"
+
+          else
+            "0 0 0"
         , String.fromFloat x
         , String.fromFloat y
         ]
