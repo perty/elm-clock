@@ -354,7 +354,7 @@ segment startTime endTime =
             time2Angle endTime
 
         minuteDiff =
-            hourMin endTime - hourMin startTime
+            Debug.log "minute diff" (Basics.abs ((endTime.hour * 5 + endTime.minute // 12) - (startTime.hour * 5 + startTime.minute // 12)))
 
         outerEnd =
             48
@@ -366,9 +366,9 @@ segment startTime endTime =
             String.join " "
                 [ pathMoveTo (cos startAngle * innerStart) (sin startAngle * innerStart)
                 , pathLineTo (cos startAngle * outerEnd) (sin startAngle * outerEnd)
-                , arcToOuter (minuteDiff > 30) outerEnd (cos endAngle * outerEnd) (sin endAngle * outerEnd)
+                , arcToOuter (minuteDiff >= 30) outerEnd (cos endAngle * outerEnd) (sin endAngle * outerEnd)
                 , pathLineTo (cos endAngle * innerStart) (sin endAngle * innerStart)
-                , arcToInner (minuteDiff > 30) innerStart (cos startAngle * innerStart) (sin startAngle * innerStart)
+                , arcToInner (minuteDiff >= 30) innerStart (cos startAngle * innerStart) (sin startAngle * innerStart)
                 ]
     in
     path [ d parts, fill "green", stroke "green", opacity "0.5" ] []
