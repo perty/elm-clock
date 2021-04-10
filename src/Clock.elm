@@ -5,7 +5,7 @@ import Browser.Dom
 import Browser.Events
 import Html exposing (Html, button, div, input, option, select, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (style, type_, value)
-import Html.Events as Events exposing (onInput)
+import Html.Events as Events
 import Svg exposing (Svg, circle, g, line, path, polygon, svg)
 import Svg.Attributes exposing (cx, cy, d, fill, fillOpacity, opacity, points, r, stroke, transform, viewBox, width, x1, x2, y1, y2)
 import Svg.Events exposing (onClick)
@@ -52,14 +52,6 @@ type alias TimeOfDay =
     , minute : Int
     , second : Int
     }
-
-
-type Colour
-    = Red
-    | Green
-    | Yellow
-    | Blue
-    | Grey
 
 
 type alias Busy =
@@ -193,6 +185,14 @@ update msg model =
                 endMinute =
                     stringToInt model.endMinuteInput 60
 
+                colour : Result String String
+                colour =
+                    if String.length model.colourInput > 2 then
+                        Ok model.colourInput
+
+                    else
+                        Err "No colour selected."
+
                 busy : Result String Busy
                 busy =
                     Result.map5
@@ -214,7 +214,7 @@ update msg model =
                         startMinute
                         endHour
                         endMinute
-                        (Ok model.colourInput)
+                        colour
             in
             ( case busy of
                 Ok b ->
@@ -525,6 +525,7 @@ viewBusyHours busies =
             [ tr []
                 [ th [] [ text "Start" ]
                 , th [] [ text "End" ]
+                , th [] [ text "Colour" ]
                 , th [] [ text "Remove" ]
                 ]
             ]
@@ -537,6 +538,7 @@ viewBusy busy =
     tr []
         [ td [] [ text <| busyToString busy.startTime ]
         , td [] [ text <| busyToString busy.endTime ]
+        , td [] [ text busy.colour ]
         , td [] [ button [ Events.onClick (RemoveBusy busy) ] [ text "X" ] ]
         ]
 
@@ -574,25 +576,10 @@ viewBusyControls model =
 colorSelector : Model -> Html Msg
 colorSelector _ =
     let
-        color2Option : Colour -> Html Msg
         color2Option colour =
-            case colour of
-                Red ->
-                    option [ value "red" ] [ text "röd" ]
-
-                Green ->
-                    option [ value "green" ] [ text "grön" ]
-
-                Yellow ->
-                    option [ value "yellow" ] [ text "gul" ]
-
-                Blue ->
-                    option [ value "blue" ] [ text "blå" ]
-
-                Grey ->
-                    option [ value "grey" ] [ text "grå" ]
+            option [ value colour ] [ text colour ]
 
         options =
-            List.map color2Option [ Red, Green, Yellow, Blue, Grey ]
+            List.map color2Option [ "pick a color", "red", "green", "yellow", "blue", "grey" ]
     in
-    select [ onInput UpdateColour ] options
+    select [ Events.onInput UpdateColour ] options
