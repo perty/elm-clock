@@ -3,9 +3,9 @@ module Clock exposing (Model)
 import Browser
 import Browser.Dom
 import Browser.Events
-import Html exposing (Html, button, div, input, table, tbody, td, text, th, thead, tr)
+import Html exposing (Html, button, div, input, option, select, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (style, type_, value)
-import Html.Events as Events
+import Html.Events as Events exposing (onInput)
 import Svg exposing (Svg, circle, g, line, path, polygon, svg)
 import Svg.Attributes exposing (cx, cy, d, fill, fillOpacity, opacity, points, r, stroke, transform, viewBox, width, x1, x2, y1, y2)
 import Svg.Events exposing (onClick)
@@ -37,6 +37,7 @@ type Msg
     | UpdateStartMinute String
     | UpdateEndHour String
     | UpdateEndMinute String
+    | UpdateColour String
     | AddBusyClicked
     | DoneButtonClicked
     | RemoveBusy Busy
@@ -64,7 +65,7 @@ type Colour
 type alias Busy =
     { startTime : TimeOfDay
     , endTime : TimeOfDay
-    , colour : Colour
+    , colour : String
     }
 
 
@@ -78,6 +79,7 @@ type alias Model =
     , startMinuteInput : String
     , endHourInput : String
     , endMinuteInput : String
+    , colourInput : String
     , error : String
     }
 
@@ -93,6 +95,7 @@ init _ =
       , startMinuteInput = ""
       , endHourInput = ""
       , endMinuteInput = ""
+      , colourInput = ""
       , error = ""
       }
     , Cmd.batch
@@ -153,6 +156,11 @@ update msg model =
             , Cmd.none
             )
 
+        UpdateColour colour ->
+            ( { model | colourInput = colour }
+            , Cmd.none
+            )
+
         AddBusyClicked ->
             let
                 stringToInt : String -> Int -> Result String Int
@@ -187,8 +195,8 @@ update msg model =
 
                 busy : Result String Busy
                 busy =
-                    Result.map4
-                        (\sh sm eh em ->
+                    Result.map5
+                        (\sh sm eh em c ->
                             { startTime =
                                 { hour = sh
                                 , minute = sm
@@ -199,13 +207,14 @@ update msg model =
                                 , minute = em
                                 , second = 0
                                 }
-                            , colour = Green
+                            , colour = c
                             }
                         )
                         startHour
                         startMinute
                         endHour
                         endMinute
+                        (Ok model.colourInput)
             in
             ( case busy of
                 Ok b ->
@@ -215,6 +224,7 @@ update msg model =
                         , startHourInput = ""
                         , endMinuteInput = ""
                         , endHourInput = ""
+                        , colourInput = ""
                         , error = ""
                     }
 
@@ -327,11 +337,11 @@ letterM =
 
 busySegments : List Busy -> List (Svg msg)
 busySegments busies =
-    List.map (\b -> segment b.startTime b.endTime) busies
+    List.map (\b -> segment b.startTime b.endTime b.colour) busies
 
 
-segment : TimeOfDay -> TimeOfDay -> Svg msg
-segment startTime endTime =
+segment : TimeOfDay -> TimeOfDay -> String -> Svg msg
+segment startTime endTime colour =
     let
         hour12 : TimeOfDay -> Float
         hour12 time =
@@ -354,7 +364,7 @@ segment startTime endTime =
             time2Angle endTime
 
         minuteDiff =
-            Debug.log "minute diff" (Basics.abs ((endTime.hour * 5 + endTime.minute // 12) - (startTime.hour * 5 + startTime.minute // 12)))
+            Basics.abs ((endTime.hour * 5 + endTime.minute // 12) - (startTime.hour * 5 + startTime.minute // 12))
 
         outerEnd =
             48
@@ -371,7 +381,7 @@ segment startTime endTime =
                 , arcToInner (minuteDiff >= 30) innerStart (cos startAngle * innerStart) (sin startAngle * innerStart)
                 ]
     in
-    path [ d parts, fill "green", stroke "green", opacity "0.5" ] []
+    path [ d parts, fill colour, stroke colour, opacity "0.5" ] []
 
 
 pathMoveTo : Float -> Float -> String
@@ -544,6 +554,7 @@ viewBusyControls model =
             , input [ Events.onInput UpdateStartMinute, value model.startMinuteInput ] []
             , input [ Events.onInput UpdateEndHour, value model.endHourInput ] []
             , input [ Events.onInput UpdateEndMinute, value model.endMinuteInput ] []
+            , colorSelector model
             , button
                 [ type_ "submit"
                 , Events.onClick AddBusyClicked
@@ -558,3 +569,30 @@ viewBusyControls model =
             ]
             [ text "Done" ]
         ]
+
+
+colorSelector : Model -> Html Msg
+colorSelector _ =
+    let
+        color2Option : Colour -> Html Msg
+        color2Option colour =
+            case colour of
+                Red ->
+                    option [ value "red" ] [ text "röd" ]
+
+                Green ->
+                    option [ value "green" ] [ text "grön" ]
+
+                Yellow ->
+                    option [ value "yellow" ] [ text "gul" ]
+
+                Blue ->
+                    option [ value "blue" ] [ text "blå" ]
+
+                Grey ->
+                    option [ value "grey" ] [ text "grå" ]
+
+        options =
+            List.map color2Option [ Red, Green, Yellow, Blue, Grey ]
+    in
+    select [ onInput UpdateColour ] options
