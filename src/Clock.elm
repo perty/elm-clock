@@ -333,13 +333,25 @@ busySegments busies =
 segment : TimeOfDay -> TimeOfDay -> Svg msg
 segment startTime endTime =
     let
+        hour12 : TimeOfDay -> Float
+        hour12 time =
+            modBy 12 time.hour |> toFloat
+
+        hourMin : TimeOfDay -> Float
+        hourMin time =
+            hour12 time * 5.0 + toFloat time.minute / 12.0
+
+        time2Angle : TimeOfDay -> Float
+        time2Angle time =
+            degrees (hourMin time - 15.0) * 360 / 60.0
+
         startAngle : Float
         startAngle =
-            degrees (minuteToAngle (hourMinute startTime))
+            time2Angle startTime
 
         endAngle : Float
         endAngle =
-            degrees (minuteToAngle (hourMinute endTime))
+            time2Angle endTime
 
         outerEnd =
             48
