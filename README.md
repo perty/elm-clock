@@ -6,27 +6,9 @@ An analog clock that adjusts its size. Written in Elm and SVG.
 Demonstrates how to get the local time zone and 
 using SVG to draw a clock. 
 
-Also, shows how to
-adjust the size of the clock to the initial 
-viewport and follow resize events.
+The clock adapts its size to the parent container.
 
 ![screen shot](./clock.png)
-## Size adjustment
-
-The `init` method creates two tasks, one to get the time zone
-and one to get the initial viewport. 
-
-The `subscription` function then subscribes to `onResize` events, so the
-clock always adjust to the viewport. The nice thing about vector graphics
-is that you work in the same coordinate space, regardless of the number
-of screen pixels the rendering is at. Here is the code:
-
-     [ svg [ viewBox "0 0 100 100", width model.clockWidth ]
-         (clockFn model.time)
-     ]
-
-Further, the `Time.every` is also  subscribed to. Every second, the message 
-`Tick` is emitted.
 
 ## Clock face
 

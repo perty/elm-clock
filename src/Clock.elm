@@ -1,8 +1,6 @@
 module Clock exposing (Model)
 
 import Browser
-import Browser.Dom
-import Browser.Events
 import Html exposing (Html, button, div, input, option, select, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (style, type_, value)
 import Html.Events as Events
@@ -30,8 +28,6 @@ main =
 type Msg
     = Tick Time.Posix
     | ReceiveTimeZone (Result TimeZone.Error ( String, Time.Zone ))
-    | GetViewPort Browser.Dom.Viewport
-    | WindowResize Int Int
     | ShowBusyDialog
     | UpdateStartHour String
     | UpdateStartMinute String
@@ -90,10 +86,7 @@ init _ =
       , colourInput = ""
       , error = ""
       }
-    , Cmd.batch
-        [ TimeZone.getZone |> Task.attempt ReceiveTimeZone
-        , Browser.Dom.getViewport |> Task.perform GetViewPort
-        ]
+    , TimeZone.getZone |> Task.attempt ReceiveTimeZone
     )
 
 
@@ -112,16 +105,6 @@ update msg model =
 
         ReceiveTimeZone (Err _) ->
             ( model, Cmd.none )
-
-        GetViewPort viewPort ->
-            ( { model | clockWidth = calculateWidth <| Basics.round <| Basics.min viewPort.viewport.width viewPort.viewport.height }
-            , Cmd.none
-            )
-
-        WindowResize width height ->
-            ( { model | clockWidth = calculateWidth <| Basics.min width height }
-            , Cmd.none
-            )
 
         ShowBusyDialog ->
             ( { model | showBusyDialog = True }
@@ -249,21 +232,13 @@ dateFromPosix zone time =
     TimeOfDay (Time.toHour zone time) (Time.toMinute zone time) (Time.toSecond zone time)
 
 
-calculateWidth : Int -> String
-calculateWidth min =
-    String.fromInt (min - 10) ++ "px"
-
-
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch
-        [ Time.every second Tick
-        , Browser.Events.onResize WindowResize
-        ]
+    Time.every second Tick
 
 
 second =
@@ -284,13 +259,13 @@ view model =
         ]
         [ div
             [ style "padding" "10px"
-            , style "max-width" model.clockWidth
+            , style "width" "100%"
             ]
             (if model.showBusyDialog then
                 [ viewBusyDialog model ]
 
              else
-                [ svg [ viewBox "0 0 100 100", width model.clockWidth ]
+                [ svg [ viewBox "0 0 100 100", width "100%" ]
                     (clockFn model.busyHours model.time)
                 ]
             )
