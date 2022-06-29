@@ -2,7 +2,7 @@ module Clock exposing (Model)
 
 import Browser
 import Html exposing (Html, button, div, input, option, select, table, tbody, td, text, th, thead, tr)
-import Html.Attributes exposing (style, type_, value)
+import Html.Attributes exposing (colspan, size, style, type_, value)
 import Html.Events as Events
 import Svg exposing (Svg, circle, g, line, path, polygon, svg)
 import Svg.Attributes exposing (cx, cy, d, fill, fillOpacity, opacity, points, r, stroke, transform, viewBox, width, x1, x2, y1, y2)
@@ -487,32 +487,34 @@ xLine start end =
 viewBusyDialog : Model -> Html Msg
 viewBusyDialog model =
     div []
-        [ text "Busy hours"
-        , viewBusyHours model.busyHours
-        , viewBusyControls model
+        [ text "Busy period"
+        , viewBusyHours model
         ]
 
 
-viewBusyHours : List Busy -> Html Msg
-viewBusyHours busies =
-    table []
-        [ thead []
-            [ tr []
-                [ th [] [ text "Start" ]
-                , th [] [ text "End" ]
-                , th [] [ text "Colour" ]
-                , th [] [ text "Remove" ]
+viewBusyHours : Model -> Html Msg
+viewBusyHours model =
+    div []
+        [ table []
+            [ thead []
+                [ tr []
+                    [ th [ colspan 2, style "text-align" "left" ] [ text "Start time" ]
+                    , th [ colspan 2, style "text-align" "left" ] [ text "End time" ]
+                    , th [] [ text "Colour" ]
+                    , th [] [ text "Remove" ]
+                    ]
                 ]
+            , tbody [] (viewBusyTable model :: List.map viewBusy model.busyHours)
             ]
-        , tbody [] (List.map viewBusy busies)
+        , button [ type_ "submit", Events.onClick DoneButtonClicked, width "100%" ] [ text "Done" ]
         ]
 
 
 viewBusy : Busy -> Html Msg
 viewBusy busy =
     tr []
-        [ td [] [ text <| busyToString busy.startTime ]
-        , td [] [ text <| busyToString busy.endTime ]
+        [ td [ colspan 2 ] [ text <| busyToString busy.startTime ]
+        , td [ colspan 2 ] [ text <| busyToString busy.endTime ]
         , td [] [ text busy.colour ]
         , td [] [ button [ Events.onClick (RemoveBusy busy) ] [ text "X" ] ]
         ]
@@ -520,31 +522,19 @@ viewBusy busy =
 
 busyToString : TimeOfDay -> String
 busyToString timeOfDay =
-    String.join ":" [ String.fromInt timeOfDay.hour, String.fromInt timeOfDay.minute ]
+    String.join ":" [ String.fromInt timeOfDay.hour |> String.padLeft 2 '0', String.fromInt timeOfDay.minute |> String.padLeft 2 '0' ]
 
 
-viewBusyControls : Model -> Html Msg
-viewBusyControls model =
-    div []
-        [ div []
-            [ input [ Events.onInput UpdateStartHour, value model.startHourInput ] []
-            , input [ Events.onInput UpdateStartMinute, value model.startMinuteInput ] []
-            , input [ Events.onInput UpdateEndHour, value model.endHourInput ] []
-            , input [ Events.onInput UpdateEndMinute, value model.endMinuteInput ] []
-            , colorSelector model
-            , button
-                [ type_ "submit"
-                , Events.onClick AddBusyClicked
-                ]
-                [ text "Add" ]
-            ]
-        , text model.error
-        , button
-            [ type_ "submit"
-            , Events.onClick DoneButtonClicked
-            , width "100%"
-            ]
-            [ text "Done" ]
+viewBusyTable : Model -> Html Msg
+viewBusyTable model =
+    tr []
+        [ td [] [ input [ Events.onInput UpdateStartHour, value model.startHourInput, size 3 ] [] ]
+        , td [] [ input [ Events.onInput UpdateStartMinute, value model.startMinuteInput, size 3 ] [] ]
+        , td [] [ input [ Events.onInput UpdateEndHour, value model.endHourInput, size 3 ] [] ]
+        , td [] [ input [ Events.onInput UpdateEndMinute, value model.endMinuteInput, size 3 ] [] ]
+        , td [] [ colorSelector model ]
+        , td [] [ button [ type_ "submit", Events.onClick AddBusyClicked ] [ text "Add" ] ]
+        , td [] [ text model.error ]
         ]
 
 
