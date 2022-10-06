@@ -1,4 +1,4 @@
-module Clock exposing (Model)
+module Clock exposing (Model, main)
 
 import Browser
 import Html exposing (Html, button, div, input, option, select, table, tbody, td, text, th, thead, tr)
@@ -12,6 +12,7 @@ import Time
 import TimeZone
 
 
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -241,6 +242,7 @@ subscriptions _ =
     Time.every second Tick
 
 
+second : number
 second =
     1000
 
@@ -294,14 +296,17 @@ clockFace =
         ++ tickMarks
 
 
+letterE : Svg msg
 letterE =
     polygon [ points "0,0 0,9 1,9 1,8.5 0.5,8.5 0.5,5 0.75,5 0.75,4 0.5,4 0.5,1 1,1 1,0", transform "translate(-3,15)" ] []
 
 
+letterL : Svg msg
 letterL =
     polygon [ points "0,0 0,1 0.5,1 0.5,9 1,9 1,8.5 0.5,8.5 0.5,0", transform "translate(0,15)" ] []
 
 
+letterM : List (Svg msg)
 letterM =
     [ polygon [ points "0,4 0,9 0.25,9 0.25,4 ", transform "translate(3,15)" ] []
     , polygon [ points "0.25,5 4,5 4,5.5 0.25,5.5 ", transform "translate(3,15)" ] []
